@@ -1,0 +1,10 @@
+[
+    {
+        "Key": "Environment",
+        "Value": "Dev"
+    },
+    {
+        "Key": "Name",
+        "Value": "ami_builder"
+    }
+]

@@ -15,13 +15,25 @@ Parameters:
         Type: AWS::EC2::VPC::Id
         Description: VPC ID that AMI Builder will use to launch temporary resource
 
-    BuilderPublicSubnet:
+    BuilderSubnet:
         Type: AWS::EC2::Subnet::Id
         Description: Public Subnet ID that AMI Builder will use to launch temporary resource
 
     NotificationEmailAddress:
         Type: String
         Description: Email to receive new AMI ID created by AMI Builder
+
+    BuildArtifactsBucket:
+        Type: String
+        Description: Bucket that will be used to store the build Artifacts
+
+    CodeBuildServiceRole:
+        Type: String
+        Description: Arn for the role that will have permissions
+
+    PipelineExecutionRole:
+        Type: String
+        Description: ARN for the role that will be used for CodePipeline
 
 Metadata: 
   AWS::CloudFormation::Interface: 
@@ -36,7 +48,7 @@ Metadata:
           default: "Packer - Temporary Resources"
         Parameters: 
           - BuilderVPC
-          - BuilderPublicSubnet
+          - BuilderSubnet
       - 
         Label: 
           default: "Packer - CodeBuild environment"
@@ -52,7 +64,7 @@ Metadata:
         default: "CodeCommit repo and Pipeline name?"
       BuilderVPC: 
         default: "Which VPC should I use?"
-      BuilderPublicSubnet: 
+      BuilderSubnet: 
         default: "Which Public Subnet should I use?"
       CodeBuildEnvironment: 
         default: "Should I use a different Docker Image?"
@@ -80,49 +92,6 @@ Resources:
 
     # S3 Bucket that CodePipeline/CodeBuild service will use
     # It will receive both SourceZip (CodeCommit Git HEAD) and BuiltZIP (CodeBuild Artifacts)
-    BuildArtifactsBucket:
-        Type: AWS::S3::Bucket
-
-    CodeBuildServiceRole:
-        Type: AWS::IAM::Role
-        Properties:
-            Path: '/managed/'
-            ManagedPolicyArns:
-              - 'arn:aws:iam::aws:policy/PowerUserAccess'
-            AssumeRolePolicyDocument:
-                Version: '2012-10-17'
-                Statement:
-                  - 
-                    Action: 'sts:AssumeRole'
-                    Effect: Allow
-                    Principal:
-                      Service:
-                        - codebuild.amazonaws.com
-            Policies:
-                - 
-                  PolicyName: CodeBuildAccess
-                  PolicyDocument:
-                    Version: '2012-10-17'
-                    Statement:
-                      - 
-                        Sid: "CodeBuildToCWL"
-                        Effect: Allow
-                        Action:
-                          - 'logs:CreateLogGroup'
-                          - 'logs:CreateLogStream'
-                          - 'logs:PutLogEvents'
-                        Resource:
-                          - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ServiceName}_build'
-                          - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ServiceName}_build:*'
-                      - 
-                        Sid: "CodeBuildToS3ArtifactRepo"
-                        Effect: Allow
-                        Action: 
-                          - 's3:GetObject'
-                          - 's3:GetObjectVersion'
-                          - 's3:PutObject'
-                        Resource: !Sub 'arn:aws:s3:::${BuildArtifactsBucket}/*'
-
 
     CodeBuildProject:
         Type: AWS::CodeBuild::Project
@@ -140,8 +109,8 @@ Resources:
                   - Name: BUILD_VPC_ID
                     Value: !Ref BuilderVPC
                   - Name: BUILD_SUBNET_ID
-                    Value: !Ref BuilderPublicSubnet
-            ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+                    Value: !Ref BuilderSubnet
+            ServiceRole: !Ref CodeBuildServiceRole
             Source: 
                 Type: CODEPIPELINE
     
@@ -149,71 +118,6 @@ Resources:
     # Pipeline  #
     #############
   
-    PipelineExecutionRole:
-      Type: AWS::IAM::Role
-      Properties:
-          Path: '/managed/'      
-          AssumeRolePolicyDocument:
-              Version: '2012-10-17'
-              Statement:
-                - 
-                  Action: 'sts:AssumeRole'
-                  Effect: Allow
-                  Principal:
-                    Service: 
-                      - codepipeline.amazonaws.com
-          Policies:
-              - 
-                PolicyName: CodePipelinePassRoleAccess
-                PolicyDocument:
-                  Version: '2012-10-17'
-                  Statement:
-                      - 
-                        Action: 'iam:PassRole'
-                        Effect: Allow
-                        Resource: !GetAtt CodeBuildServiceRole.Arn
-              - 
-                PolicyName: CodePipelineS3ArtifactAccess
-                PolicyDocument:
-                  Version: '2012-10-17'
-                  Statement:
-                      - 
-                        Action:
-                          - 's3:GetObject'
-                          - 's3:GetObjectVersion'
-                          - 's3:GetBucketVersioning'
-                          - 's3:PutObject'
-                        Effect: Allow
-                        Resource: 
-                          - !Sub 'arn:aws:s3:::${BuildArtifactsBucket}'
-                          - !Sub 'arn:aws:s3:::${BuildArtifactsBucket}/*'
-              - 
-                PolicyName: CodePipelineGitRepoAccess
-                PolicyDocument:
-                  Version: '2012-10-17'
-                  Statement:
-                      - 
-                        Action:
-                          - 'codecommit:GetBranch'
-                          - 'codecommit:GetCommit'
-                          - 'codecommit:UploadArchive'
-                          - 'codecommit:GetUploadArchiveStatus'
-                          - 'codecommit:CancelUploadArchive'
-                        Effect: Allow
-                        Resource: !GetAtt CodeRepository.Arn
-              - 
-                PolicyName: CodePipelineBuildAccess
-                PolicyDocument:
-                  Version: '2012-10-17'
-                  Statement:
-                      - 
-                        Action:
-                          - 'codebuild:StartBuild'
-                          - 'codebuild:StopBuild'
-                          - 'codebuild:BatchGetBuilds'
-                        Effect: Allow
-                        Resource: !GetAtt CodeBuildProject.Arn
-
 
     Pipeline:
         Type: AWS::CodePipeline::Pipeline
@@ -222,7 +126,7 @@ Resources:
                 Location: !Ref BuildArtifactsBucket
                 Type: S3
             Name: !Sub ${ServiceName}_pipeline
-            RoleArn: !GetAtt PipelineExecutionRole.Arn
+            RoleArn: !Ref PipelineExecutionRole
             Stages:
                 - 
                   Name: Source
@@ -311,14 +215,6 @@ Outputs:
         ArtifactRepository:
             Description: S3 Bucket for Pipeline and Build Artifacts
             Value: !Ref BuildArtifactsBucket
-
-        CodeBuildServiceRole:
-            Description: CodeBuild IAM Service Role
-            Value: !GetAtt CodeBuildServiceRole.Arn
-
-        CodePipelineServiceRole:
-            Description: CodePipeline IAM Service Role
-            Value: !GetAtt PipelineExecutionRole.Arn
 
         GitRepository:
             Description: Git repository HTTP URL

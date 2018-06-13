@@ -1,0 +1,10 @@
+[
+    {
+        "ParameterKey": "ServiceName",
+        "ParameterValue": "BaseAMI"
+    },
+    {
+        "ParameterKey": "BuildArtifactsBucket",
+        "ParameterValue": "esvwbuildbucket"
+    }
+]

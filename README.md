@@ -90,3 +90,16 @@ git push origin master
     - A) You haven't chosen a VPC Public Subnet, and therefore Packer cannot connect to the instance
     - B) There may have been a connectivity issue between Packer and EC2; retrying the build step within AWS CodePipeline should work just fine 
 
+
+
+## How to do an install
+
+First we need to create the roles. Often you can create them at the same time, but often this is not the case.
+
+```
+aws cloudformation create-stack --template-body file://iam_cfn.yaml --parameters file://iam_params.json --tags file://tags.json --region us-east-1 --capabilities CAPABILITY_NAMED_IAM --stack-name AMIIamRoles
+```
+
+```
+aws cloudformation create-stack --template-body file://pipeline.yaml --parameters file://parameters.json --tags file://tags.json --region us-east-1 --capabilities CAPABILITY_NAMED_IAM --stack-name AMIPipeline
+```

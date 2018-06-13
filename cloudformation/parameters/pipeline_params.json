@@ -1,0 +1,34 @@
+[
+    {
+        "ParameterKey": "NotificationEmailAddress",
+        "ParameterValue": "<email>"
+    },
+    {
+        "ParameterKey": "BuilderSubnet",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "BuilderVPC",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "CodeBuildEnvironment",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "ServiceName",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "CodeBuildServiceRole",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "PipelineExecutionRole",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "BuildArtifactsBucket",
+        "ParameterValue": ""
+    }
+]
