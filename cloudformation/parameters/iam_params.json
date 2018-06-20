@@ -5,6 +5,6 @@
     },
     {
         "ParameterKey": "BuildArtifactsBucket",
-        "ParameterValue": "esvwbuildbucket"
+        "ParameterValue": "<somebucket>"
     }
 ]

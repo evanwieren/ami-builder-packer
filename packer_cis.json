@@ -3,56 +3,50 @@
     "vpc": "{{env `BUILD_VPC_ID`}}",
     "subnet": "{{env `BUILD_SUBNET_ID`}}",
     "aws_region": "{{env `AWS_REGION`}}",
-    "ami_name": "CentOS-7x8_64-test-{{timestamp}}"
+    "ami_name": "AmazonLinux-test-{{timestamp}}"
   },
-  "builders": [{
-    "name": "AWS AMI Builder - CIS",
-    "type": "amazon-ebs",
-    "region": "{{user `aws_region`}}",
-    "source_ami": "ami-4bf3d731",
-    "instance_type": "t2.micro",
-    "ssh_username": "centos",
-    "ami_name": "{{user `ami_name` | clean_ami_name}}",
-    "tags": {
-      "Name": "{{user `ami_name`}}"
-    },
-    "run_tags": { 
-      "Name": "{{user `ami_name`}}"
-    },
-    "run_volume_tags": {
-      "Name": "{{user `ami_name`}}"
-    },
-    "snapshot_tags": {
-      "Name": "{{user `ami_name`}}"
-    },
-    "ami_description": "Centos Image with nothing",
-    "associate_public_ip_address": "true",
-    "vpc_id": "{{user `vpc`}}",
-    "subnet_id": "{{user `subnet`}}"
-  }],
+  "builders": [
+    {
+      "name": "AWS AMI Builder - CIS",
+      "type": "amazon-ebs",
+      "region": "{{user `aws_region`}}",
+      "source_ami": "ami-14c5486b",
+      "instance_type": "m5.large",
+      "ssh_username": "ec2-user",
+      "ami_name": "{{user `ami_name` | clean_ami_name}}",
+      "tags": {
+        "Name": "{{user `ami_name`}}"
+      },
+      "run_tags": {
+        "Name": "{{user `ami_name`}}"
+      },
+      "run_volume_tags": {
+        "Name": "{{user `ami_name`}}"
+      },
+      "snapshot_tags": {
+        "Name": "{{user `ami_name`}}"
+      },
+      "ami_description": "Amazon Linux with Updated Packages",
+      "associate_public_ip_address": "true",
+      "vpc_id": "{{user `vpc`}}",
+      "subnet_id": "{{user `subnet`}}"
+    }
+  ],
   "provisioners": [
     {
-        "type": "shell",
-        "inline": [
-            "sudo yum -y install epel-release",
-            "sudo yum -y install python-pip",
-            "sudo pip install ansible"
-        ]
-    }, 
+      "type": "shell",
+      "inline": ["sudo pip install ansible"]
+    },
     {
-        "type": "ansible-local",
-        "playbook_file": "ansible/playbook.yaml",
-        "role_paths": [
-            "ansible/roles/common"
-        ],
-        "playbook_dir": "ansible",
-        "galaxy_file": "ansible/requirements.yaml"
+      "type": "ansible-local",
+      "playbook_file": "ansible/playbook.yaml",
+      "role_paths": ["ansible/roles/common"],
+      "playbook_dir": "ansible",
+      "galaxy_file": "ansible/requirements.yaml"
     },
     {
       "type": "shell",
-      "inline": [
-        "rm .ssh/authorized_keys ; sudo rm /root/.ssh/authorized_keys"
-      ]
+      "inline": ["rm .ssh/authorized_keys ; sudo rm /root/.ssh/authorized_keys"]
     }
   ]
 }
